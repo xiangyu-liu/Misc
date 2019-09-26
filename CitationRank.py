@@ -63,23 +63,21 @@ class SearchPaper():
             print(new_paper_list[index], total_citation_num[index])
 
     def load_citation(self, year):
-        citation_string = "citation.pkl"
-        new_paper_string = "new_paper.pkl"
-        if year=="2018":
-            citation_string = "2018_" + citation_string
-            new_paper_string = "2018_" + new_paper_string
+        citation_string = str(year) + "_" + "citation.pkl"
+        new_paper_string = str(year) + "_" + "new_paper.pkl"
         citation_file = open(citation_string, "rb")
         new_paper_file = open(new_paper_string, "rb")
+
         total_citation_num = pickle.load(citation_file)
-        new_paper_list = pickle.load(new_paper_file)
         total_citation_num = np.array(total_citation_num)
+        new_paper_list = pickle.load(new_paper_file)
         sort_citation = np.argsort(total_citation_num)
         for index in sort_citation:
             print(new_paper_list[index], total_citation_num[index])
 
 
 if __name__ == '__main__':
-    read_file = open("2018_paper_list", "rb")
+    read_file = open("2018_paper_list.pkl", "rb")
     paper_list = pickle.load(read_file)
     search = SearchPaper(paper_list[:-2])
     search.get_citation()
