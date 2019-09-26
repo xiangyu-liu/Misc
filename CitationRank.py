@@ -36,9 +36,12 @@ class SearchPaper():
         new_paper_list = []
         for paper in self.paper_list:
             url = self.url_base + paper.replace(" ", "+")
-            # url = "https://x.glgoo.top/scholar?q=DQN"
+            if "from+Scratch" in url or "Curricula" in url:
+                continue
+            if "Understanding+Atari" in url:
+                break
             page = Request(url, headers=headers)
-            html = urlopen(page).read().decode('utf-8')
+            html = urlopen(page).read()
             soup = BeautifulSoup(html, features='lxml')
             citation = soup.find_all(name="a", attrs={"href": location_pattern})
             if len(citation) == 0:
@@ -54,6 +57,21 @@ class SearchPaper():
         new_paper_file = open("2018_new_paper.pkl", "wb")
         pickle.dump(total_citation_num, citation_file)
         pickle.dump(new_paper_list, new_paper_file)
+        total_citation_num = np.array(total_citation_num)
+        sort_citation = np.argsort(total_citation_num)
+        for index in sort_citation:
+            print(new_paper_list[index], total_citation_num[index])
+
+    def load_citation(self, year):
+        citation_string = "citation.pkl"
+        new_paper_string = "new_paper.pkl"
+        if year=="2018":
+            citation_string = "2018_" + citation_string
+            new_paper_string = "2018_" + new_paper_string
+        citation_file = open(citation_string, "rb")
+        new_paper_file = open(new_paper_string, "rb")
+        total_citation_num = pickle.load(citation_file)
+        new_paper_list = pickle.load(new_paper_file)
         total_citation_num = np.array(total_citation_num)
         sort_citation = np.argsort(total_citation_num)
         for index in sort_citation:
