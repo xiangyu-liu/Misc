@@ -5,10 +5,14 @@ import pickle
 import multiprocessing
 from multiprocessing.dummy import Pool as ThreadPool
 
+black_list_path = r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt"
+log_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/"
+
 
 def domain2ip(domain):
     result = socket.getaddrinfo(domain, None)
     return result[0][4][0]
+
 
 num = 0
 
@@ -39,47 +43,42 @@ def get_black_ip_set(file_path):
     return list(set(ip_list))
 
 
-def main(stop_num):
-    black_domain_list = get_black_ip_set(
-        r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt")
-    file_count = -1
-    ip_list = []
-    for domain in black_domain_list:
-        file_count += 1
-        if file_count <= stop_num:
-            continue
-        try:
-            ip = domain2ip(domain)
-            if ip in ip_list:
-                print("repetition")
-                continue
-        except:
-            print(domain, ":error")
-            continue
+file_count = 0
 
+
+def main():
+    def process(ip):
+        global file_count
+        file_count += 1
         url = "https://censys.io/ipv4/" + ip + "/raw"
         print(file_count, ip, url)
-        try:
-            contents = TargetContents(url=url)
-        except:
-            print("error")
-            continue
-        parsed_html = contents.soup.find_all("code")
-        if len(parsed_html) == 0:
-            print("begin to loop")
-            file_count -= 1
-            continue
+        def fetch_dict():
+            try:
+                contents = TargetContents(url=url)
+                return contents.soup.find_all("code")
+            except:
+                print("error")
+                return []
+        while True:
+            parsed_html = fetch_dict()
+            if len(parsed_html) != 0:
+                break
+            else:
+                print("looping")
         for parsed_text in parsed_html:
             ip_dict = json.loads(parsed_text.get_text())
-            print(ip_dict)
-            json.dump(ip_dict, open("/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/" + ip + ".json", mode="w"))
-            ip_list.append(ip)
-            if len(ip_list) > 1000:
-                ip_list = ip_list[-1000:]
+            json.dump(ip_dict, open(log_path + ip + ".json", mode="w"))
+
+    black_ip_list = get_black_ip_set(black_list_path)
+    cores = multiprocessing.cpu_count()
+    print(cores)
+    pool = ThreadPool(processes=cores)
+    pool.map(process, black_ip_list)
+    pool.close()
+    pool.join()
 
 
 if __name__ == '__main__':
-    ip_list = get_black_ip_set(
-        r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt")
+    ip_list = get_black_ip_set(black_list_path)
     pickle.dump(ip_list, "ip_list.pkl")
     print(len(ip_list))
