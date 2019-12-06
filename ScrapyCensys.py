@@ -6,7 +6,9 @@ import multiprocessing
 from multiprocessing.dummy import Pool as ThreadPool
 
 log_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/"
-black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt",
+ip_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ip/"
+black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/wrz.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/emd.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/exp.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/fsa.txt",
@@ -18,7 +20,6 @@ black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt"
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/wrz.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/verified_online.json"]
 
 
@@ -45,10 +46,9 @@ def get_black_ip_set(file_path):
         print(num)
         try:
             ip = domain2ip(domain)
-            print(ip)
             return ip
         except:
-            print("error")
+            print("ip error", domain)
             return "0"
 
     cores = multiprocessing.cpu_count()
@@ -101,6 +101,6 @@ if __name__ == '__main__':
     i = 0
     for file_path in black_list_path:
         ip_list = get_black_ip_set(black_list_path)
-        pickle.dump(ip_list, str(i) + ".pkl")
-        print(len(ip_list))
+        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='w'))
+        print(len(ip_list), file_path, "finish:" + str(i))
         i += 1
