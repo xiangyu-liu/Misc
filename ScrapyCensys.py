@@ -54,10 +54,10 @@ def get_black_ip_set(file_path):
     cores = multiprocessing.cpu_count()
     print(cores)
     pool = ThreadPool(processes=cores)
-    ip_list = pool.map(process, domain_list)
+    results = pool.map(process, domain_list)
     pool.close()
     pool.join()
-    return list(set(ip_list))
+    return list(set(results))
 
 
 file_count = 0
