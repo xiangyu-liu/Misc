@@ -3,67 +3,65 @@ import json
 import socket
 import pickle
 import multiprocessing
-from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool as ThreadPool
 
 log_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/"
 ip_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ip/"
-black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/wrz.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ad_servers.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/emd.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/exp.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/fsa.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/grm.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/hfs.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/hjk.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/mmt.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/pha.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/verified_online.json"]
+black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/wrz.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/ad_servers.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/emd.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/exp.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/fsa.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/grm.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/hfs.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/hjk.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/mmt.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/pha.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/verified_online.json"]
 
 
 def domain2ip(domain):
-    result = socket.getaddrinfo(domain, None)
-    return result[0][4][0]
-
+    result = socket.gethostbyname(domain)
+    return result
 
 num = 0
 
-
-def get_black_ip_set(file_path):
-    if "json" in file_path:
-        json_dict = json.load(open(file_path))
+def get_black_ip_set(file):
+    print(file)
+    num = 0
+    if "json" in file:
+        json_dict = json.load(open(file))
         domain_list = [per_dict["url"] for per_dict in json_dict]
     else:
-        with open(file_path, mode="r") as black_list:
+        with open(file, mode="r") as black_list:
             lines = black_list.readlines()[10: -1]
             domain_list = [line.split("\t")[1].split("\n")[0] for line in lines]
 
     def process(domain):
         global num
-        num += 1
-        print(num)
         try:
             ip = domain2ip(domain)
+            num += 1
             return ip
         except:
-            print("ip error", domain)
+            print("ip error", domain, num)
             return "0"
 
     cores = multiprocessing.cpu_count()
     print(cores)
     pool = ThreadPool(processes=cores)
-    ip_list = pool.map(process, domain_list)
+    results = pool.map(process, domain_list)
     pool.close()
     pool.join()
-    return list(set(ip_list))
+    return list(set(results))
 
 
 file_count = 0
 
-
-def main():
+def main(path):
     def process(ip):
         global file_count
         file_count += 1
@@ -88,7 +86,7 @@ def main():
             ip_dict = json.loads(parsed_text.get_text())
             json.dump(ip_dict, open(log_path + ip + ".json", mode="w"))
 
-    black_ip_list = get_black_ip_set(black_list_path)
+    black_ip_list = pickle.load(open(path, mode="rb"))
     cores = multiprocessing.cpu_count()
     print(cores)
     pool = ThreadPool(processes=cores)
@@ -96,11 +94,13 @@ def main():
     pool.close()
     pool.join()
 
-
-if __name__ == '__main__':
+def run_domain2ip():
     i = 0
     for file_path in black_list_path:
-        ip_list = get_black_ip_set(black_list_path)
-        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", "w"))
+        ip_list = get_black_ip_set(file_path)
+        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='wb+'))
         print(len(ip_list), file_path, "finish:" + str(i))
         i += 1
+
+if __name__ == '__main__':
+    pass
