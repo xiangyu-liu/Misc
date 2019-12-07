@@ -3,7 +3,7 @@ import json
 import socket
 import pickle
 import multiprocessing
-from multiprocessing.dummy import Pool as ThreadPool
+from multiprocessing import Pool as ThreadPool
 
 log_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/"
 ip_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ip/"
@@ -24,8 +24,8 @@ black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/wrz.txt"
 
 
 def domain2ip(domain):
-    result = socket.getaddrinfo(domain, None)
-    return result[0][4][0]
+    result = socket.gethostbyname(domain)
+    return result
 
 num = 0
 
@@ -45,10 +45,9 @@ def get_black_ip_set(file):
         try:
             ip = domain2ip(domain)
             num += 1
-            print(num)
             return ip
         except:
-            print("ip error", domain)
+            print("ip error", domain, num)
             return "0"
 
     cores = multiprocessing.cpu_count()
@@ -62,7 +61,7 @@ def get_black_ip_set(file):
 
 file_count = 0
 
-def main():
+def main(path):
     def process(ip):
         global file_count
         file_count += 1
@@ -87,7 +86,7 @@ def main():
             ip_dict = json.loads(parsed_text.get_text())
             json.dump(ip_dict, open(log_path + ip + ".json", mode="w"))
 
-    black_ip_list = get_black_ip_set(black_list_path)
+    black_ip_list = pickle.load(open(path, mode="rb"))
     cores = multiprocessing.cpu_count()
     print(cores)
     pool = ThreadPool(processes=cores)
@@ -95,11 +94,13 @@ def main():
     pool.close()
     pool.join()
 
-
-if __name__ == '__main__':
+def run_domain2ip():
     i = 0
     for file_path in black_list_path:
         ip_list = get_black_ip_set(file_path)
         pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='wb+'))
         print(len(ip_list), file_path, "finish:" + str(i))
         i += 1
+
+if __name__ == '__main__':
+    pass
