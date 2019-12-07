@@ -18,8 +18,7 @@ black_list_path = [r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/wrz.txt"
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/mmt.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/pha.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
-                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/psh.txt",
+                   r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/pub.txt",
                    r"/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/domain/verified_online.json"]
 
 
@@ -39,14 +38,16 @@ def get_black_ip_set(file):
         try:
             ip = domain2ip(domain)
             num += 1
+            if num %1000 == 0:
+                print(num)
             return ip
         except:
-            print("ip error", domain, num)
+            # print("ip error", domain, num)
             return "0"
 
     if "json" in file:
         json_dict = json.load(open(file))
-        domain_list = [per_dict["url"] for per_dict in json_dict]
+        domain_list = [per_dict["url"].split("/")[2] for per_dict in json_dict]
     else:
         with open(file, mode="r") as black_list:
             lines = black_list.readlines()[10: -1]
@@ -63,28 +64,27 @@ def get_black_ip_set(file):
 
 file_count = 0
 
+def connect(url):
+    try:
+        contents = TargetContents(url=url)
+        return contents.soup.find_all("code")
+    except:
+        print("error")
+        return []
+
 
 def main(black_ip_list):
-    def fetch_json(ip):
-        global file_count
-        file_count += 1
-        url = "https://censys.io/ipv4/" + ip + "/raw"
-        print(file_count, ip)
 
-        def fetch_dict():
-            try:
-                contents = TargetContents(url=url)
-                return contents.soup.find_all("code")
-            except:
-                print("error")
-                return []
+    def fetch_json(ip):
+        url = "https://censys.io/ipv4/" + ip + "/raw"
+        print(ip)
 
         while True:
-            parsed_html = fetch_dict()
-            if len(parsed_html) != 0:
-                break
-            else:
+            parsed_html = connect(url)
+            if len(parsed_html) == 0:
                 print("looping")
+            else:
+                break
 
         for parsed_text in parsed_html:
             ip_dict = json.loads(parsed_text.get_text())
@@ -111,11 +111,11 @@ def run_domain2ip():
     i = -1
     for file_path in black_list_path:
         i += 1
-        if i<= 3:
+        if i<= 11:
             continue
         ip_list = get_black_ip_set(file_path)
-        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='wb+'))
+        pickle.dump(ip_list, open(ip_path + str(i) + "_json.pkl", mode='wb+'))
         print(len(ip_list), file_path, "finish:" + str(i))
 
 if __name__ == '__main__':
-    run_scrapy()
+    run_domain2ip()
