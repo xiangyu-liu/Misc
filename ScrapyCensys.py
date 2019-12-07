@@ -3,7 +3,7 @@ import json
 import socket
 import pickle
 import multiprocessing
-from multiprocessing import Pool as ThreadPool
+from multiprocessing.dummy import Pool
 
 log_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/logs/"
 ip_path = "/newNAS/Workspaces/DRLGroup/xiangyuliu/Misc/ip/"
@@ -29,16 +29,10 @@ def domain2ip(domain):
 
 num = 0
 
+
 def get_black_ip_set(file):
     print(file)
     num = 0
-    if "json" in file:
-        json_dict = json.load(open(file))
-        domain_list = [per_dict["url"] for per_dict in json_dict]
-    else:
-        with open(file, mode="r") as black_list:
-            lines = black_list.readlines()[10: -1]
-            domain_list = [line.split("\t")[1].split("\n")[0] for line in lines]
 
     def process(domain):
         global num
@@ -50,9 +44,17 @@ def get_black_ip_set(file):
             print("ip error", domain, num)
             return "0"
 
+    if "json" in file:
+        json_dict = json.load(open(file))
+        domain_list = [per_dict["url"] for per_dict in json_dict]
+    else:
+        with open(file, mode="r") as black_list:
+            lines = black_list.readlines()[10: -1]
+            domain_list = [line.split("\t")[1].split("\n")[0] for line in lines]
+
     cores = multiprocessing.cpu_count()
     print(cores)
-    pool = ThreadPool(processes=cores)
+    pool = Pool(processes=cores)
     results = pool.map(process, domain_list)
     pool.close()
     pool.join()
@@ -61,12 +63,13 @@ def get_black_ip_set(file):
 
 file_count = 0
 
+
 def main(black_ip_list):
-    def process(ip):
+    def fetch_json(ip):
         global file_count
         file_count += 1
         url = "https://censys.io/ipv4/" + ip + "/raw"
-        print(file_count, ip, url)
+        print(file_count, ip)
 
         def fetch_dict():
             try:
@@ -82,29 +85,37 @@ def main(black_ip_list):
                 break
             else:
                 print("looping")
+
         for parsed_text in parsed_html:
             ip_dict = json.loads(parsed_text.get_text())
             json.dump(ip_dict, open(log_path + ip + ".json", mode="w"))
 
     cores = multiprocessing.cpu_count()
     print(cores)
-    pool = ThreadPool(processes=cores)
-    pool.map(process, black_ip_list)
+    pool = Pool(processes=cores)
+    pool.map(fetch_json, black_ip_list)
     pool.close()
     pool.join()
 
-def run_domain2ip():
-    i = 0
-    for file_path in black_list_path:
-        ip_list = get_black_ip_set(file_path)
-        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='wb+'))
-        print(len(ip_list), file_path, "finish:" + str(i))
-        i += 1
 
-if __name__ == '__main__':
+def run_scrapy():
     new_list = []
     for i in range(4):
         new_list = new_list + pickle.load(open(ip_path + str(i) + ".pkl", mode="rb"))
     new_list = list(set(new_list))
     pickle.dump(new_list, open(ip_path + "0123.pkl", mode="wb+"))
     main(new_list)
+
+
+def run_domain2ip():
+    i = -1
+    for file_path in black_list_path:
+        i += 1
+        if i<= 3:
+            continue
+        ip_list = get_black_ip_set(file_path)
+        pickle.dump(ip_list, open(ip_path + str(i) + ".pkl", mode='wb+'))
+        print(len(ip_list), file_path, "finish:" + str(i))
+
+if __name__ == '__main__':
+    run_scrapy()
