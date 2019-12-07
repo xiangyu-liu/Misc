@@ -61,7 +61,7 @@ def get_black_ip_set(file):
 
 file_count = 0
 
-def main(path):
+def main(black_ip_list):
     def process(ip):
         global file_count
         file_count += 1
@@ -86,7 +86,6 @@ def main(path):
             ip_dict = json.loads(parsed_text.get_text())
             json.dump(ip_dict, open(log_path + ip + ".json", mode="w"))
 
-    black_ip_list = pickle.load(open(path, mode="rb"))
     cores = multiprocessing.cpu_count()
     print(cores)
     pool = ThreadPool(processes=cores)
@@ -103,4 +102,9 @@ def run_domain2ip():
         i += 1
 
 if __name__ == '__main__':
-    pass
+    new_list = []
+    for i in range(4):
+        new_list = new_list + pickle.load(open(ip_path + str(i) + ".pkl", mode="rb"))
+    new_list = list(set(new_list))
+    pickle.dump(new_list, open(ip_path + "0123.pkl", mode="wb+"))
+    main(new_list)
